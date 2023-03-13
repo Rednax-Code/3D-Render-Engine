@@ -5,6 +5,7 @@ Render3D
 3D renderer originally created for pygame
 """
 from pygame.math import *
+import pygame.gfxdraw
 import numpy as np
 import numpy.typing as npt
 import shapes
@@ -25,18 +26,21 @@ class camera_object:
 		self.position = self.position + rotate_y(np.array(translation), self.rotation[2])
 
 	def rotate(self, rotation:npt.ArrayLike):
-		self.rotation += np.array([rotation[-i] for i in range(3)])
-		print(self.rotation)
+		self.rotation += rotation
 		new_vectors = self.plane_vectors
 		rotations = [rotate_x, rotate_y, rotate_z]
 		axis = [i != 0 for i in rotation]
 		for i in range(3):
-			if axis[-i]:
-				new_vectors = rotations[-i](new_vectors, rotation[-i])
+			if axis[i]:
+				new_vectors = rotations[i](new_vectors, rotation[i])
 		self.plane_vectors = new_vectors
+		
 		self.plane_normal = np.cross(*self.plane_vectors)
 		self.plane_normal /= np.linalg.norm(self.plane_normal)
-		self.point = -self.plane_normal * (1000 / np.tan(self.fov/2))
+		self.point = self.plane_normal * (1000 / np.tan(self.fov/2))
+	
+	def rotate_relative(self, rotation:npt.ArrayLike):
+		pass
 
 
 
@@ -67,8 +71,8 @@ def init():
 	camera = camera_object()
 
 
-def render(objects:list[shapes.ShapeLike]):
-	projections = []
+def render(screen, objects:list[shapes.ShapeLike]):
+	#projections = []
 	for i in objects:
 		cam_point = camera.point
 		cam_normal = camera.plane_normal
@@ -76,15 +80,18 @@ def render(objects:list[shapes.ShapeLike]):
 
 		t = np.dot(cam_normal, cam_point)/np.dot(cam_point - offsets, cam_normal)
 		projection2D = cam_point + ((offsets - cam_point).T * t).T
+
 		#if not camera.rotation.all(0):
 		#	projection2D = rotate_points(projection2D, *-camera.rotation)
-		projection2D = rotate_x(projection2D, -camera.rotation[0])
-		projection2D = rotate_y(projection2D, -camera.rotation[2])
-		projection2D = rotate_z(projection2D, -camera.rotation[1])
+		#projection2D = rotate_x(projection2D, -camera.rotation[0])
+		#projection2D = rotate_y(projection2D, -camera.rotation[1])
+		#projection2D = rotate_z(projection2D, -camera.rotation[2])
 
 		projection2D = np.rint(projection2D[:, 0:2]) + np.array([1920, 1080])/2
 		projection2D = projection2D.astype(int).tolist()
 		
-		projections.append(projection2D)
-		
-	return projections
+		#projections.append(projection2D)
+
+		for j in i.triangles:
+			points = [projection2D[j[k]] for k in (0,1,2)]
+			pygame.gfxdraw.aapolygon(screen, points, (255,255,255))
