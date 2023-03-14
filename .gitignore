@@ -1,4 +1,4 @@
 __pycache__/*
 __pycache__/
 objects/*
-objects/
+!objects/house.obj

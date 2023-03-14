@@ -84,6 +84,7 @@ def render(screen):
 
 	# TEMPORARY
 	light_objects = [i for i in objects_list if isinstance(i, lights.LightLike)]
+	point_lights = []
 	for i in light_objects:
 		if isinstance(i, lights.ambient_light):
 			light_color = np.array(i.color)
@@ -93,6 +94,18 @@ def render(screen):
 			light_direction.rotate_rad_ip(-camera.rotation[0], np.cross([0,1,0], rotate_y(np.array([0,0,1]), camera.rotation[1])))
 			light_direction.rotate_rad_ip(-camera.rotation[1], Vector3(0,1,0))
 			light_direction = np.array(light_direction)
+			directional_lighting = i.intensity*np.array(i.color)/255
+		if isinstance(i, lights.point_light):
+			point_light_position = i.position - camera.position - camera.point
+			new_point_light_position = []
+			for j in point_light_position:
+				vector = Vector3(j.tolist())
+				vector.rotate_rad_ip(-camera.rotation[0], np.cross([0,1,0], rotate_y(np.array([0,0,1]), camera.rotation[1])))
+				vector.rotate_rad_ip(-camera.rotation[1], Vector3(0,1,0))
+				new_point_light_position.append(list(vector))
+			point_light_position = np.array(new_point_light_position) + camera.point
+			point_lighting = i.intensity*np.array(i.color)/255
+			point_lights.append([point_light_position, point_lighting])
 
 
 
@@ -133,8 +146,9 @@ def render(screen):
 		remove_queue = []
 		add_triangle_queue = []
 		add_normal_queue = []
+		clipping_distance = [.0,.0,200]
 		for triangle in range(len(visible_triangles)):
-			points = np.array(visible_triangles[triangle]) - camera.point - [.0,.0,100]
+			points = np.array(visible_triangles[triangle]) - camera.point - clipping_distance
 			clips = [point for point in points if point[2] <= 0]
 			non_clips = [point for point in points if point[2] > 0]
 
@@ -146,8 +160,8 @@ def render(screen):
 				# Devide triangle into 2 when 1 of it's points is behind the camera
 				t = np.dot([.0,.0,1.0], clips[0])/np.dot(clips[0] - non_clips, [.0,.0,1.0])
 				new_points = clips[0] + ((non_clips - clips[0]).T * t).T
-				triangle_1 = [non_clips[1], non_clips[0], new_points[0]] + camera.point + [.0,.0,100]
-				triangle_2 = [new_points[1], non_clips[1], new_points[0]] + camera.point + [.0,.0,100]
+				triangle_1 = [non_clips[1], non_clips[0], new_points[0]] + camera.point + clipping_distance
+				triangle_2 = [new_points[1], non_clips[1], new_points[0]] + camera.point + clipping_distance
 				add_triangle_queue.append(triangle_1)
 				add_normal_queue.append(normals[triangle])
 				add_triangle_queue.append(triangle_2)
@@ -157,7 +171,7 @@ def render(screen):
 				# Replace triangle when 2 of it's points are behind the camera
 				t = np.dot([.0,.0,1.0], non_clips[0])/np.dot(non_clips[0] - clips, [.0,.0,1.0])
 				new_points = non_clips[0] + ((clips - non_clips[0]).T * t).T
-				triangle_1 = [new_points[0], non_clips[0], new_points[1]] + camera.point + [.0,.0,100]
+				triangle_1 = [new_points[0], non_clips[0], new_points[1]] + camera.point + clipping_distance
 				add_triangle_queue.append(triangle_1)
 				add_normal_queue.append(normals[triangle])
 		
@@ -187,12 +201,23 @@ def render(screen):
 			normal = normals[j]
 			points = [projection2D[j*3+k] for k in (0,1,2)]
 
-			# Add lighting (TEMPORARY)
-			color = np.array((200.0,200.0,200.0))
-			color *= np.dot(normal, light_direction).clip(0, 1)
-				
-			pygame.gfxdraw.filled_polygon(screen, points, ambient_lighting+color)
-			#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
+			# Add ambient lighting
+			ambient_color = ambient_lighting
+
+			# Add directional lighting
+			directional_color = directional_lighting * np.dot(normal/np.linalg.norm(normal), -light_direction/np.linalg.norm(light_direction)).clip(0, 1)
+
+			# Add point lighting
+			point_color = (0,0,0)
+			for k in point_lights:
+				center = np.average(clipped_triangles[j])
+				point_light_position = k[0]
+				point_lighting = k[1]
+				light_direction = center - point_light_position
+				point_color += point_lighting * np.dot(normal/np.linalg.norm(normal), -light_direction/np.linalg.norm(light_direction)).clip(0, 1)
+
+			pygame.gfxdraw.filled_polygon(screen, points, ambient_color+directional_color)
+			pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
 	#et = time.time() # timer
 	#print((et - st)*1000, 'ms') # timer

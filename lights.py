@@ -56,3 +56,28 @@ class directional_light(LightLike):
 		self.direction = np.array(direction)
 		self.intensity = intensity
 		self.color = color
+
+class point_light(LightLike):
+	def __init__(self, position:npt.ArrayLike, intensity:float, color:list):
+		"""
+		Light going in all directions equally spread
+
+		Parameters
+		----------
+		position : Array[x: float, y: float, z: float]
+			The position of the light
+			
+		intensity : float
+			How strong the light is.
+		
+		color : list[r, g, b]
+			The color
+
+		Returns
+		-------
+		LightLike
+		"""
+
+		self.position = np.array(position)
+		self.intensity = intensity
+		self.color = color

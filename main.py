@@ -19,18 +19,15 @@ clock = pygame.time.Clock()
 render3D.init([width, height])
 
 # Loading in triangle meshes
-#shape = os.path.join(os.path.dirname(__file__),'objects\\test.obj')
+shape = os.path.join(os.path.dirname(__file__),'objects\\house.obj')
 
 # Adding first shapes
 render3D.scene.add_objects([
-	#render3D.shapes.mesh(shape, [0,0,200], [500,500,500], None),
+	#render3D.shapes.mesh(shape, [0,0,200], [100,100,100], None),
     render3D.shapes.cuboid([0,0,1000], [500, 500, 500], None),
     render3D.lights.ambient_light(8, [255,255,255]),
-    render3D.lights.directional_light([0,0,-1], 1, [255,255,255])
+    render3D.lights.directional_light([1,-1,1], 100, [255,255,255])
 ])
-
-cube = render3D.objects_list[0]
-cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, .0, .1, .0) + cube.position
 
 
 # Key input handler
@@ -63,7 +60,7 @@ while True:
 			if i in inputs_camera_rotate:
 				render3D.camera.rotate(inputs_camera_rotate[i])
 
-
+	# Accessing the object information
 	obj_list = render3D.objects_list
 
 	# Rotating the light
