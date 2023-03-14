@@ -10,7 +10,7 @@ import numpy as np
 import numpy.typing as npt
 import shapes
 import lights
-import time # temp
+import time # timer
 
 
 class camera_object:
@@ -107,38 +107,43 @@ def render(screen):
 		# Getting normal vectors and visible triangles
 		# render-time : 30%
 		normals = []
+		visible_triangles = []
 		for j in i.triangles:
 			points = [offsets[j[k]] for k in (0,1,2)]
 			line1, line2 = points[0:2] - points[2]
 			normal = np.cross(line1, line2)
 			normal /= np.linalg.norm(normal)
-			normals.append(normal)
+			if np.dot(normal, offsets[j[2]]-cam_point) < 0:
+				visible_triangles.append(points)
+				normals.append(normal)
+		visible_triangles = np.array(visible_triangles)
+
+		offsets = visible_triangles.reshape([len(visible_triangles)*3, 3])
 		
 		# View space >>> Projection space
 		t = np.dot(cam_normal, cam_point)/np.dot(cam_point - offsets, cam_normal)
 		projection2D = cam_point + ((offsets - cam_point).T * t).T
 
-		# Projectio space >>> Window space
+		# Projection space >>> Window space
 		projection2D = np.array([0, window_size[1]]) + np.array([1, -1]) * projection2D[:, 0:2]
 		projection2D = np.rint(projection2D + np.array([1, -1]) * np.array(window_size)/2)
 		projection2D = projection2D.astype(int).tolist()
 
+		# Sorting triangles
+		visible_triangles = sorted(visible_triangles, key=lambda x: np.average(x, 1)[2], reverse=True) # if needed reverse
 		
 		# Drawing the triangles on screen
 		# render-time : 10%-20%
-		for j in range(len(i.triangles)):
-			triangle = i.triangles[j]
+		for j in range(len(visible_triangles)):
 			normal = normals[j]
-			if np.dot(normal, offsets[triangle[2]]-cam_point) < 0:
-				
-				points = [projection2D[triangle[k]] for k in (0,1,2)]
+			points = [projection2D[j*3+k] for k in (0,1,2)]
 
-				# Add lighting (TEMPORARY)
-				color = np.array((255.0,255.0,255.0))
-				color *= np.dot(normal, light_direction).clip(0, 1)
+			# Add lighting (TEMPORARY)
+			color = np.array((255.0,255.0,255.0))
+			color *= np.dot(normal, light_direction).clip(0, 1)
 				
-				pygame.gfxdraw.filled_polygon(screen, points, color)
-				#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
+			pygame.gfxdraw.filled_polygon(screen, points, color)
+			#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
 	#et = time.time() # timer
 	#print((et - st)*1000, 'ms') # timer

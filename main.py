@@ -19,12 +19,12 @@ clock = pygame.time.Clock()
 render3D.init([width, height])
 
 # Loading in triangle meshes
-shape = os.path.join(os.path.dirname(__file__),'objects\\test.obj')
+#shape = os.path.join(os.path.dirname(__file__),'objects\\test.obj')
 
 # Adding first shapes
 render3D.scene.add_objects([
-	render3D.shapes.mesh(shape, [0,0,200], [500,500,500], None),
-    #render3D.shapes.cuboid([0,0,2000], [500, 500, 500], None),
+	#render3D.shapes.mesh(shape, [0,0,200], [500,500,500], None),
+    render3D.shapes.cuboid([0,0,2000], [500, 500, 500], None),
     render3D.lights.single_direction_light([0,0,-1], 1, [255,255,255])
 ])
 
@@ -66,7 +66,8 @@ while True:
 	#for i in obj_list:
 	#	if isinstance(i, render3D.lights.LightLike):
 	#		i.direction = render3D.rotate_y(i.direction, 0.01)
-	#cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, .005, .003, .004) + cube.position
+	cube = obj_list[0]
+	cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, -.008, .006, .005) + cube.position
 
 	# Clearing the screen
 	screen.fill((0,0,0))
