@@ -72,6 +72,13 @@ class scene:
 		objects_list.extend(Objects)
 
 
+def calc_normal(triangle):
+	line1, line2 = triangle[0:2] - triangle[2]
+	normal = np.cross(line1, line2)
+	normal /= np.linalg.norm(normal)
+	return normal
+
+
 def render(screen):
 	#st = time.time() # timer
 
@@ -110,17 +117,46 @@ def render(screen):
 		visible_triangles = []
 		for j in i.triangles:
 			points = [offsets[j[k]] for k in (0,1,2)]
-			line1, line2 = points[0:2] - points[2]
-			normal = np.cross(line1, line2)
-			normal /= np.linalg.norm(normal)
+			normal = calc_normal(points)
 			if np.dot(normal, offsets[j[2]]-cam_point) < 0:
 				visible_triangles.append(points)
 				normals.append(normal)
-		visible_triangles = np.array(visible_triangles)
-
-		offsets = visible_triangles.reshape([len(visible_triangles)*3, 3])
 		
+		# Apply clipping
+		remove_queue = []
+		add_triangle_queue = []
+		add_normal_queue = []
+		counter = 0
+		for triangle in range(len(visible_triangles)):
+			points = np.array(visible_triangles[triangle]) - camera.point - [.0,.0,100]
+			clips = [point for point in points if point[2] <= 0]
+			non_clips = [point for point in points if point[2] > 0]
+			if len(clips) > 0:
+				remove_queue.append(triangle)
+				counter += 1
+			if len(clips) == 1:
+				t = np.dot([.0,.0,1.0], clips[0])/np.dot(clips[0] - non_clips, [.0,.0,1.0])
+				new_points = clips[0] + ((non_clips - clips[0]).T * t).T
+				triangle_1 = [non_clips[1], non_clips[0], new_points[0]] + camera.point + [.0,.0,100]
+				triangle_2 = [new_points[1], non_clips[1], new_points[0]] + camera.point + [.0,.0,100]
+				add_triangle_queue.append(triangle_1)
+				add_normal_queue.append(normals[triangle])
+				add_triangle_queue.append(triangle_2)
+				add_normal_queue.append(normals[triangle])
+			elif len(clips) == 2:
+				t = np.dot([.0,.0,1.0], non_clips[0])/np.dot(non_clips[0] - clips, [.0,.0,1.0])
+				new_points = non_clips[0] + ((clips - non_clips[0]).T * t).T
+				triangle_1 = [new_points[0], non_clips[0], new_points[1]] + camera.point + [.0,.0,100]
+				add_triangle_queue.append(triangle_1)
+				add_normal_queue.append(normals[triangle])
+		clipped_triangles = [visible_triangles[j] for j in range(len(visible_triangles)) if not j in remove_queue]
+		normals = [normals[j] for j in range(len(visible_triangles)) if not j in remove_queue]
+		clipped_triangles.extend(add_triangle_queue)
+		normals.extend(add_normal_queue)
+
 		# View space >>> Projection space
+		clipped_triangles = np.array(clipped_triangles)
+		offsets = clipped_triangles.reshape([len(clipped_triangles)*3, 3])
 		t = np.dot(cam_normal, cam_point)/np.dot(cam_point - offsets, cam_normal)
 		projection2D = cam_point + ((offsets - cam_point).T * t).T
 
@@ -130,19 +166,19 @@ def render(screen):
 		projection2D = projection2D.astype(int).tolist()
 
 		# Sorting triangles
-		visible_triangles = sorted(visible_triangles, key=lambda x: np.average(x, 1)[2], reverse=True) # if needed reverse
+		clipped_triangles = sorted(clipped_triangles, key=lambda x: np.average(x, 1)[2], reverse=True) # if needed reverse
 		
 		# Drawing the triangles on screen
 		# render-time : 10%-20%
-		for j in range(len(visible_triangles)):
+		for j in range(len(clipped_triangles)):
 			normal = normals[j]
 			points = [projection2D[j*3+k] for k in (0,1,2)]
 
 			# Add lighting (TEMPORARY)
-			color = np.array((255.0,255.0,255.0))
+			color = np.array((200.0,200.0,200.0))
 			color *= np.dot(normal, light_direction).clip(0, 1)
 				
-			pygame.gfxdraw.filled_polygon(screen, points, color)
+			pygame.gfxdraw.filled_polygon(screen, points, np.array((55.0,55.0,55.0))+color)
 			#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
 	#et = time.time() # timer
