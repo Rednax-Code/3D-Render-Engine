@@ -3,6 +3,8 @@ import pygame.gfxdraw
 from pygame.locals import *
 from pygame.math import *
 import render3D
+import os.path
+
 
 # Initializing window
 pygame.init()
@@ -16,8 +18,15 @@ clock = pygame.time.Clock()
 # Initializing renderer
 render3D.init([width, height])
 
-# Adding first shape
-render3D.scene.add_object(render3D.shapes.cuboid([0,0,2000], [500, 500, 500], None))
+# Loading in triangle meshes
+shape = os.path.join(os.path.dirname(__file__),'objects\\test.obj')
+
+# Adding first shapes
+render3D.scene.add_objects([
+	render3D.shapes.mesh(shape, [0,0,200], [500,500,500], None),
+    #render3D.shapes.cuboid([0,0,2000], [500, 500, 500], None),
+    render3D.lights.single_direction_light([0,0,-1], 1, [255,255,255])
+])
 
 
 # Key input handler
@@ -51,8 +60,13 @@ while True:
 				render3D.camera.rotate(inputs_camera_rotate[i])
 
 
-	cube = render3D.objects_list[0]
-	cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, .005, .003, .004) + cube.position
+	obj_list = render3D.objects_list
+
+	# Rotating the light
+	#for i in obj_list:
+	#	if isinstance(i, render3D.lights.LightLike):
+	#		i.direction = render3D.rotate_y(i.direction, 0.01)
+	#cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, .005, .003, .004) + cube.position
 
 	# Clearing the screen
 	screen.fill((0,0,0))

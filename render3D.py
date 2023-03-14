@@ -9,6 +9,8 @@ import pygame.gfxdraw
 import numpy as np
 import numpy.typing as npt
 import shapes
+import lights
+import time # temp
 
 
 class camera_object:
@@ -71,15 +73,26 @@ class scene:
 
 
 def render(screen):
-	for i in objects_list:
+	#st = time.time() # timer
+
+	# TEMPORARY
+	light = [k for k in objects_list if isinstance(k, lights.LightLike)][0]
+	light_direction = Vector3(list(light.direction))
+	light_direction.rotate_rad_ip(-camera.rotation[0], np.cross([0,1,0], rotate_y(np.array([0,0,1]), camera.rotation[1])))
+	light_direction.rotate_rad_ip(-camera.rotation[1], Vector3(0,1,0))
+	light_direction = np.array(list(light_direction))
+
+	render_objects = [i for i in objects_list if isinstance(i, shapes.ShapeLike)]
+	for i in render_objects:
 		cam_point = camera.point
 		cam_normal = camera.plane_normal
 
 		# World space >>> Camera translation space
 		offsets = i.offsets_center - camera.position
-		
+
 		# Camera translation space >>> Camera rotation space
 		# This works and i'm glad it does, but it's ugly af. Either don't touch it or spend 5 hours fixing it completely
+		# render-time : 20%
 		offsets -= cam_point
 		new_offsets = []
 		for j in offsets:
@@ -92,13 +105,15 @@ def render(screen):
 
 		# Camera rotation space >>> View space
 		# Getting normal vectors and visible triangles
+		# render-time : 30%
 		normals = []
 		for j in i.triangles:
 			points = [offsets[j[k]] for k in (0,1,2)]
 			line1, line2 = points[0:2] - points[2]
 			normal = np.cross(line1, line2)
+			normal /= np.linalg.norm(normal)
 			normals.append(normal)
-
+		
 		# View space >>> Projection space
 		t = np.dot(cam_normal, cam_point)/np.dot(cam_point - offsets, cam_normal)
 		projection2D = cam_point + ((offsets - cam_point).T * t).T
@@ -108,10 +123,22 @@ def render(screen):
 		projection2D = np.rint(projection2D + np.array([1, -1]) * np.array(window_size)/2)
 		projection2D = projection2D.astype(int).tolist()
 
+		
 		# Drawing the triangles on screen
+		# render-time : 10%-20%
 		for j in range(len(i.triangles)):
 			triangle = i.triangles[j]
 			normal = normals[j]
 			if np.dot(normal, offsets[triangle[2]]-cam_point) < 0:
+				
 				points = [projection2D[triangle[k]] for k in (0,1,2)]
-				pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
+
+				# Add lighting (TEMPORARY)
+				color = np.array((255.0,255.0,255.0))
+				color *= np.dot(normal, light_direction).clip(0, 1)
+				
+				pygame.gfxdraw.filled_polygon(screen, points, color)
+				#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
+	
+	#et = time.time() # timer
+	#print((et - st)*1000, 'ms') # timer
