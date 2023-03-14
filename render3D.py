@@ -83,11 +83,18 @@ def render(screen):
 	#st = time.time() # timer
 
 	# TEMPORARY
-	light = [k for k in objects_list if isinstance(k, lights.LightLike)][0]
-	light_direction = Vector3(list(light.direction))
-	light_direction.rotate_rad_ip(-camera.rotation[0], np.cross([0,1,0], rotate_y(np.array([0,0,1]), camera.rotation[1])))
-	light_direction.rotate_rad_ip(-camera.rotation[1], Vector3(0,1,0))
-	light_direction = np.array(list(light_direction))
+	light_objects = [i for i in objects_list if isinstance(i, lights.LightLike)]
+	for i in light_objects:
+		if isinstance(i, lights.ambient_light):
+			light_color = np.array(i.color)
+			ambient_lighting = i.intensity*light_color/255
+		if isinstance(i, lights.directional_light):
+			light_direction = Vector3(i.direction.tolist())
+			light_direction.rotate_rad_ip(-camera.rotation[0], np.cross([0,1,0], rotate_y(np.array([0,0,1]), camera.rotation[1])))
+			light_direction.rotate_rad_ip(-camera.rotation[1], Vector3(0,1,0))
+			light_direction = np.array(light_direction)
+
+
 
 	render_objects = [i for i in objects_list if isinstance(i, shapes.ShapeLike)]
 	for i in render_objects:
@@ -99,11 +106,11 @@ def render(screen):
 
 		# Camera translation space >>> Camera rotation space
 		# This works and i'm glad it does, but it's ugly af. Either don't touch it or spend 5 hours fixing it completely
-		# render-time : 20%
+		# render-time : 20% outdated
 		offsets -= cam_point
 		new_offsets = []
 		for j in offsets:
-			vector = Vector3(list(j))
+			vector = Vector3(j.tolist())
 			vector.rotate_rad_ip(-camera.rotation[0], np.cross([0,1,0], rotate_y(np.array([0,0,1]), camera.rotation[1])))
 			vector.rotate_rad_ip(-camera.rotation[1], Vector3(0,1,0))
 			new_offsets.append(list(vector))
@@ -112,7 +119,7 @@ def render(screen):
 
 		# Camera rotation space >>> View space
 		# Getting normal vectors and visible triangles
-		# render-time : 30%
+		# render-time : 30% outdated
 		normals = []
 		visible_triangles = []
 		for j in i.triangles:
@@ -126,15 +133,17 @@ def render(screen):
 		remove_queue = []
 		add_triangle_queue = []
 		add_normal_queue = []
-		counter = 0
 		for triangle in range(len(visible_triangles)):
 			points = np.array(visible_triangles[triangle]) - camera.point - [.0,.0,100]
 			clips = [point for point in points if point[2] <= 0]
 			non_clips = [point for point in points if point[2] > 0]
+
 			if len(clips) > 0:
+				# Remove triangles behind the camera
 				remove_queue.append(triangle)
-				counter += 1
+
 			if len(clips) == 1:
+				# Devide triangle into 2 when 1 of it's points is behind the camera
 				t = np.dot([.0,.0,1.0], clips[0])/np.dot(clips[0] - non_clips, [.0,.0,1.0])
 				new_points = clips[0] + ((non_clips - clips[0]).T * t).T
 				triangle_1 = [non_clips[1], non_clips[0], new_points[0]] + camera.point + [.0,.0,100]
@@ -143,12 +152,16 @@ def render(screen):
 				add_normal_queue.append(normals[triangle])
 				add_triangle_queue.append(triangle_2)
 				add_normal_queue.append(normals[triangle])
+
 			elif len(clips) == 2:
+				# Replace triangle when 2 of it's points are behind the camera
 				t = np.dot([.0,.0,1.0], non_clips[0])/np.dot(non_clips[0] - clips, [.0,.0,1.0])
 				new_points = non_clips[0] + ((clips - non_clips[0]).T * t).T
 				triangle_1 = [new_points[0], non_clips[0], new_points[1]] + camera.point + [.0,.0,100]
 				add_triangle_queue.append(triangle_1)
 				add_normal_queue.append(normals[triangle])
+		
+		# Updating the triangle and normals lists after the clipping algorithm
 		clipped_triangles = [visible_triangles[j] for j in range(len(visible_triangles)) if not j in remove_queue]
 		normals = [normals[j] for j in range(len(visible_triangles)) if not j in remove_queue]
 		clipped_triangles.extend(add_triangle_queue)
@@ -169,7 +182,7 @@ def render(screen):
 		clipped_triangles = sorted(clipped_triangles, key=lambda x: np.average(x, 1)[2], reverse=True) # if needed reverse
 		
 		# Drawing the triangles on screen
-		# render-time : 10%-20%
+		# render-time : 10%-20% outdated
 		for j in range(len(clipped_triangles)):
 			normal = normals[j]
 			points = [projection2D[j*3+k] for k in (0,1,2)]
@@ -178,7 +191,7 @@ def render(screen):
 			color = np.array((200.0,200.0,200.0))
 			color *= np.dot(normal, light_direction).clip(0, 1)
 				
-			pygame.gfxdraw.filled_polygon(screen, points, np.array((55.0,55.0,55.0))+color)
+			pygame.gfxdraw.filled_polygon(screen, points, ambient_lighting+color)
 			#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
 	#et = time.time() # timer

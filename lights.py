@@ -11,7 +11,28 @@ import numpy.typing as npt
 class LightLike:
 	pass
 
-class single_direction_light(LightLike):
+class ambient_light(LightLike):
+	def __init__(self, intensity:float, color:list):
+		"""
+		Just... light
+
+		Parameters
+		----------
+		intensity : float
+			How strong the light is.
+		
+		color : list[r, g, b]
+			The color
+
+		Returns
+		-------
+		LightLike
+		"""
+
+		self.intensity = intensity
+		self.color = color
+
+class directional_light(LightLike):
 	def __init__(self, direction:npt.ArrayLike, intensity:float, color:list):
 		"""
 		Light with a single direction

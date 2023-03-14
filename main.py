@@ -25,7 +25,8 @@ render3D.init([width, height])
 render3D.scene.add_objects([
 	#render3D.shapes.mesh(shape, [0,0,200], [500,500,500], None),
     render3D.shapes.cuboid([0,0,1000], [500, 500, 500], None),
-    render3D.lights.single_direction_light([0,0,-1], 1, [255,255,255])
+    render3D.lights.ambient_light(8, [255,255,255]),
+    render3D.lights.directional_light([0,0,-1], 1, [255,255,255])
 ])
 
 cube = render3D.objects_list[0]
