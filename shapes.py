@@ -13,6 +13,42 @@ class ShapeLike:
 	pass
 
 
+class plane(ShapeLike):
+	triangles = (
+		[0,1,2], [0,2,3]
+	)
+	def __init__(self, position:npt.ArrayLike, size:npt.ArrayLike, texture):
+		"""
+		A plane! no... not the one that flies.
+
+		Parameters
+		----------
+		position : Array[x: float, y: float, z: float]
+			The starting position of your plane.
+			
+		size : Array[width: float, height: float]
+			The starting size of the plane.
+		
+		texture : Texture
+			The texture for the plane.
+
+		Returns
+		-------
+		ShapeLike
+		"""
+
+		position = np.array(position)
+		size = np.array([size[0], 0, size[1]])
+
+		unit_offsets = np.array([
+			[-1,0,-1],[-1,0,1], [1,0,1], [1,0,-1]
+		])
+
+		self.position = position
+		self.size = size
+		self.offsets_center = position+(unit_offsets * size/2)
+
+
 class cuboid(ShapeLike):
 	triangles = (
 		[0,3,7], [0,7,4],
@@ -21,7 +57,7 @@ class cuboid(ShapeLike):
 		[1,2,3], [1,3,0],
 		[3,2,6], [3,6,7],
 		[5,1,0], [5,0,4]
-		)
+	)
 	def __init__(self, position:npt.ArrayLike, size:npt.ArrayLike, texture):
 		"""
 		Cube, box, 3D rectangle, whatever you wanna call it.
