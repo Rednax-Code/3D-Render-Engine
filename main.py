@@ -23,8 +23,8 @@ shape = os.path.join(os.path.dirname(__file__),'objects\\house.obj')
 
 # Adding first shapes
 render3D.scene.add_objects([
-	#render3D.shapes.mesh(shape, [0,0,200], [100,100,100], None),
-    render3D.shapes.cuboid([0,0,1000], [500, 500, 500], None),
+	render3D.shapes.mesh(shape, [0,0,200], [100,100,100], None),
+    #render3D.shapes.cuboid([0,0,1000], [500, 500, 500], None),
     render3D.lights.ambient_light(8, [255,255,255]),
     render3D.lights.directional_light([1,-1,1], 100, [255,255,255])
 ])
@@ -49,6 +49,9 @@ while True:
 				quit()
 			if event.key in input_list:
 				inputs[event.key] = True
+			if event.key == K_t:
+				render3D.selected_triangle += 1
+				print(render3D.selected_triangle)
 		if event.type == pygame.KEYUP:
 			if event.key in input_list:
 				inputs[event.key] = False
