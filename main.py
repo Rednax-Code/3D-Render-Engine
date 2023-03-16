@@ -32,12 +32,12 @@ render3D.scene.add_objects([
 	render3D.shapes.plane([0,-525,0], [5000,5000], None),
 	render3D.shapes.mesh(shape, [-700,0,1000], [500,500,500], None),
 	render3D.shapes.mesh(shape, [700,0,1000], [500,500,500], None),
-	render3D.lights.ambient_light(20, [255,255,255]),
-	render3D.lights.directional_light([1,-1,1], 100, [255,255,255])
+	render3D.lights.ambient_light(30, [255,255,255]),
+	render3D.lights.directional_light([1,-1,1], 150, [255,255,255])
 ])
 
 # Camera movement speed
-Speed = 1
+Speed = 5
 pygame.mouse.get_rel()
 
 # Key input handler
@@ -73,7 +73,7 @@ while True:
 			if i in inputs_camera_move:
 				render3D.camera.translate(Speed * np.array(inputs_camera_move[i]))
 			if i in inputs_camera_rotate:
-				render3D.camera.rotate(inputs_camera_rotate[i])
+				render3D.camera.rotate(Speed/2 * np.array(inputs_camera_rotate[i]))
 	
 	mouse_move_x, mouse_move_y = pygame.mouse.get_rel()
 	render3D.camera.rotate(np.array([mouse_move_y, mouse_move_x, 0])/360)
@@ -93,7 +93,7 @@ while True:
 	screen.fill((0,0,0))
 
 	# Render all objects
-	time = render3D.render(screen, debug=True)
+	time = render3D.render(screen, debug=False)
 
 	pygame.mouse.get_rel()
 	pygame.display.flip()

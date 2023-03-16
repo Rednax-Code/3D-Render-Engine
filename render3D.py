@@ -393,7 +393,8 @@ def render(screen:Surface, debug=False) -> float:
 
 		# Draw the triangle on screen
 		pygame.gfxdraw.filled_polygon(screen, points, total_color)
-		pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
+		if debug:
+			pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
 
 	et = time.time()
