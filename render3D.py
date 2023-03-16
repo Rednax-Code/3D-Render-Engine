@@ -67,8 +67,15 @@ def init(screen_size):
 	global objects_list
 	objects_list = []
 
+	global debug_font
+	debug_font = pygame.font.SysFont('Arial', size=72)
 
-class scene:	
+
+class scene:
+	def __init__(self):
+		self.frames_since_start = 0
+		self.render_time_total = 0
+
 	def add_object(Object:shapes.ShapeLike):
 		objects_list.append(Object)
 	
@@ -83,8 +90,8 @@ def calc_normal(triangle):
 	return normal
 
 
-def render(screen):
-	#st = time.time() # timer
+def render(screen, debug=False):
+	st = time.time()
 	
 	# Gather camera information
 	cam_position = camera.position
@@ -196,7 +203,10 @@ def render(screen):
 			add_triangle_queue.append(triangle_1)
 			add_triangle_queue.append(triangle_2)
 			add_normal_queue.extend((normals[triangle], normals[triangle]))
-			add_color_queue.extend(((255,0,0), (0,255,0))) # Debug colors
+			if debug:
+				add_color_queue.extend(((255,0,0), (0,255,0)))
+			else:
+				add_color_queue.extend((colors[triangle], colors[triangle]))
 			add_render_order_queue.extend((render_orders[triangle], render_orders[triangle])) # Render order
 
 		elif len(clips) == 2:
@@ -206,7 +216,10 @@ def render(screen):
 			triangle_1 = [new_points[0], non_clips[0], new_points[1]] + cam_point + clipping_distance
 			add_triangle_queue.append(triangle_1)
 			add_normal_queue.append(normals[triangle])
-			add_color_queue.append((0,0,255)) # Debug colors
+			if debug:
+				add_color_queue.append((0,0,255))
+			else:
+				add_color_queue.append(colors[triangle])
 			add_render_order_queue.append(render_orders[triangle]) # Render order
 	
 	# Updating the triangle and normals lists after the clipping algorithm
@@ -285,5 +298,17 @@ def render(screen):
 		pygame.gfxdraw.filled_polygon(screen, points, total_color)
 		pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
-	#et = time.time() # timer
-	#print((et - st)*1000, 'ms') # timer
+	#frames_since_start = frames_since_start + 1
+	scene.frames_since_start
+	et = time.time()
+	render_time = (et-st)*1000, 1
+	scene.render_time_total += render_time
+	render_time_average = scene.render_time_total / scene.frames_since_start
+
+	# Draw debug screen
+	if debug:
+		render_time_text = debug_font.render(str(round(render_time))+' ms', True, (255,255,255))
+		render_time_average_text = debug_font.render(str(render_time_average)+' ms', True, (255,255,255))
+		screen.blit(render_time_text, [50, 50])
+
+	return render_time

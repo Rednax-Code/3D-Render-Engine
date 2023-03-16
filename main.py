@@ -90,7 +90,7 @@ while True:
 	screen.fill((0,0,0))
 
 	# Render all objects
-	render3D.render(screen)
+	time = render3D.render(screen, debug=True)
 
 	pygame.mouse.get_rel()
 	pygame.display.flip()
