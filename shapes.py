@@ -2,8 +2,22 @@
 Shapes
 ------
 
-Defines the shapes for render3D.py
+Defines the shapes for render3D.
+
+Could be used seperately, but i really can't immagine know why you would.
+
+Features
+--------
+- plane
+- cuboids
+- ANY mesh (though larger meshes might change frames per second to seconds per frame)
+
+Plans
+-----
+- Adding other basic shapes like tetrahedron, piramid, dodecahedron
+- More support for .obj files
 """
+
 import numpy as np
 import numpy.typing as npt
 import os
@@ -23,13 +37,13 @@ class plane(ShapeLike):
 
 		Parameters
 		----------
-		position : Array[x: float, y: float, z: float]
+		position : `Array[x: float, y: float, z: float]`
 			The starting position of your plane.
 			
-		size : Array[width: float, height: float]
+		size : `Array[width: float, height: float]`
 			The starting size of the plane.
 		
-		texture : Texture
+		texture : `Texture`
 			The texture for the plane.
 
 		Returns
@@ -64,13 +78,13 @@ class cuboid(ShapeLike):
 
 		Parameters
 		----------
-		position : Array[x: float, y: float, z: float]
+		position : `Array[x: float, y: float, z: float]`
 			The starting position of the cuboid.
 			
-		size : Array[width: float, height: float, depth: float]
+		size : `Array[width: float, height: float, depth: float]`
 			The starting size of the cuboid.
 		
-		texture : Texture
+		texture : `Texture`
 			The texture for the cuboid.
 
 		Returns
@@ -98,16 +112,16 @@ class mesh(ShapeLike):
 
 		Parameters
 		----------
-		obj : os.path
+		obj : `os.path`
 			The path to .obj file of your model.
 
-		position : Array[x: float, y: float, z: float]
+		position : `Array[x: float, y: float, z: float]`
 			The starting position of the object.
 			
-		size : Array[width: float, height: float, depth: float]
+		size : `Array[width: float, height: float, depth: float]`
 			The starting size of the object. (This scales all vertecies)
 		
-		texture : Texture
+		texture : `Texture`
 			The texture for the object.
 
 		Returns

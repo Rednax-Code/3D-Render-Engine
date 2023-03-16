@@ -1,8 +1,20 @@
 """
-Shapes
+Lights
 ------
 
-Defines the shapes for render3D.py
+Defines the light objects for render3D.
+
+Could be used seperately, but i really can't immagine know why you would.
+
+Features
+--------
+- ambient
+- directional
+- point (Though this looks wierd because two triangles of a square are handled seperately by the renderer)
+
+Plans
+-----
+- spotlight
 """
 import numpy as np
 import numpy.typing as npt

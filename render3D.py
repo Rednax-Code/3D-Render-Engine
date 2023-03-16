@@ -2,9 +2,32 @@
 Render3D
 --------
 
-3D renderer originally created for pygame
+A 3D renderer originally created for pygame.
+
+I started on this project around the start of march 2023.
+What i plan to do with it all... idk, BUT it's great fun.
+It is currently VERY slow (cus it's python), but i'll probably add some Cython magic.
+
+Features
+--------
+- Load in .obj files.
+- Render triangle meshes and some basic shapes like cubes and planes.
+- Doesn't render triangles facing away from the camera.
+- Clip triangles with points in/behind camera.
+- Painter-style depth mapping.
+- Camera object which can move and rotate.
+- Lighting with ambient, directional and point lights.
+
+Plans
+-----
+- Optimilization through Cython
+- Texturing
+- perhaps smooth lighting shaders?
+- shadows?!
 """
+
 from pygame.math import *
+from pygame import Surface
 import pygame.gfxdraw
 import numpy as np
 import numpy.typing as npt
@@ -15,6 +38,31 @@ import time # timer
 
 class camera_object:
 	def __init__(self, position:npt.ArrayLike=[0,0,0], rotation:npt.ArrayLike=[.0,.0,.0], fov:float=90):
+		"""
+		The camera of your scene, which is created automatically by the engine.
+	
+		It can be accessed with: `render3D.camera`
+
+		Parameters
+		----------
+		position : `Array[x: float, y: float, z: float]`
+			The starting position of the camera.
+			
+		rotation : `Array[x: float, y: float, z: float]`
+			The starting rotation of the camera around the axis x, y and z.
+		
+		fov : `float`
+			The fov for the camera.
+
+		Returns
+		-------
+		camera_object
+
+		Issues
+		------
+		Rotating the camera round the z-axis might cause issues (untested)
+		"""
+
 		self.position = position # Is the offset of all objects relatively
 		self.rotation = np.array(rotation)
 		self.fov = fov
@@ -25,16 +73,42 @@ class camera_object:
 		self.plane_normal /= np.linalg.norm(self.plane_normal)
 		self.point = -self.plane_normal * (1000 / np.tan(self.fov/2))
 	
-	def translate(self, translation:npt.ArrayLike):
+	def translate(self, translation:npt.ArrayLike) -> None:
+		"""
+		Moves the camera relative to is rotation around the y-axis
+
+		Parameters
+		----------
+		translation : `Array[x: float, y: float, z: float]`
+			The target position minus current position.
+
+		Returns
+		-------
+		None
+		"""
 		self.position = self.position + rotate_y(np.array(translation), self.rotation[1])
 
-	def rotate(self, rotation:npt.ArrayLike):
+	def rotate(self, rotation:npt.ArrayLike) -> None:
+		"""
+		Rotates the camera relatively to itself.
+
+		So the x-axis changes depending on its current rotation around the y-axis.
+
+		Parameters
+		----------
+		rotation : `Array[x: float, y: float, z: float]`
+			The target rotation minus current rotation.
+
+		Returns
+		-------
+		None
+		"""
 		self.rotation += rotation
 
 
 
 
-camera: camera_object = None
+camera: camera_object
 
 
 
@@ -52,8 +126,18 @@ def rotate_points(points:npt.ArrayLike, a:float, b:float, y:float):
 
 def init(screen_size):
 	"""
-	Initializes the module and creates the camera object as render3D.camera
+	Initializes the module and creates the camera object as `render3D.camera`
+
+	Parameters
+	----------
+	screen_size : `Array[x: int, y: int]`
+		Sets the size of the screen.
+
+	Returns
+	-------
+	None
 	"""
+
 	global window_size
 	window_size = screen_size
 
@@ -86,7 +170,24 @@ def calc_normal(triangle):
 	return normal
 
 
-def render(screen, debug=False):
+def render(screen:Surface, debug=False) -> float:
+	"""
+	The BIG function to `magically` draw all your objects on the screen.
+
+	Parameters
+	----------
+	screen : `pygame.Surface`
+		The pygame display surface object.
+	
+	debug : `bool`, optional
+		This will enable the debug menu showing render time on-screen and colors clipped triangles.
+
+	Returns
+	-------
+	float
+		The time it took to render the image.
+	"""
+
 	st = time.time()
 	
 	# Gather camera information
@@ -180,7 +281,7 @@ def render(screen, debug=False):
 	add_normal_queue = []
 	add_color_queue = []
 	add_render_order_queue = []
-	clipping_distance = [.0,.0,300]
+	clipping_distance = [.0,.0,150]
 	for triangle in range(triangle_count):
 		points = np.array(visible_triangles[triangle]) - cam_point - clipping_distance
 		clips = [point for point in points if point[2] <= 0]
@@ -292,7 +393,7 @@ def render(screen, debug=False):
 
 		# Draw the triangle on screen
 		pygame.gfxdraw.filled_polygon(screen, points, total_color)
-		#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
+		pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
 
 	et = time.time()
