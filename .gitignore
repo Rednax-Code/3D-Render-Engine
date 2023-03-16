@@ -1,4 +1,6 @@
-__pycache__/*
 __pycache__/
+
 objects/*
 !objects/house.obj
+
+Optimisation/
