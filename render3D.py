@@ -72,10 +72,6 @@ def init(screen_size):
 
 
 class scene:
-	def __init__(self):
-		self.frames_since_start = 0
-		self.render_time_total = 0
-
 	def add_object(Object:shapes.ShapeLike):
 		objects_list.append(Object)
 	
@@ -296,19 +292,15 @@ def render(screen, debug=False):
 
 		# Draw the triangle on screen
 		pygame.gfxdraw.filled_polygon(screen, points, total_color)
-		pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
+		#pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
-	#frames_since_start = frames_since_start + 1
-	scene.frames_since_start
+
 	et = time.time()
-	render_time = (et-st)*1000, 1
-	scene.render_time_total += render_time
-	render_time_average = scene.render_time_total / scene.frames_since_start
+	render_time = (et-st)*1000
 
 	# Draw debug screen
 	if debug:
-		render_time_text = debug_font.render(str(round(render_time))+' ms', True, (255,255,255))
-		render_time_average_text = debug_font.render(str(render_time_average)+' ms', True, (255,255,255))
+		render_time_text = debug_font.render(str(round(render_time,1))+' ms', True, (255,255,255))
 		screen.blit(render_time_text, [50, 50])
 
 	return render_time
