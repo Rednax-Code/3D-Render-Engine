@@ -86,6 +86,9 @@ while True:
 	for i in obj_list:
 		if isinstance(i, render3D.lights.directional_light):
 			i.direction = render3D.rotate_y(i.direction, 0.01)
+		if isinstance(i, render3D.shapes.mesh):
+			i.move()
+			i.rotate(0, .1, 0)
 	#cube = obj_list[0]
 	#cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, -.008, .006, .005) + cube.position
 
