@@ -29,9 +29,9 @@ monkey = os.path.join(os.path.dirname(__file__),'objects\\monkey.obj')
 render3D.scene.add_objects([
 	#render3D.shapes.mesh(monkey, [0,0,1000], [500,500,500], None),
 	#render3D.shapes.cuboid([0,0,500], [500,500,500], None),
-	render3D.shapes.plane([0,-525,0], [5000,5000], None),
-	render3D.shapes.mesh(shape, [-700,0,1000], [500,500,500], None),
-	render3D.shapes.mesh(shape, [700,0,1000], [500,500,500], None),
+	render3D.shapes.plane([0,-525,0], [0,0,0], [5000,5000], None),
+	render3D.shapes.mesh(shape, [-700,0,1000], [0,0,0], [500,500,500], None),
+	render3D.shapes.mesh(shape, [700,0,1000], [0,0,0], [500,500,500], None),
 	render3D.lights.ambient_light(30, [255,255,255]),
 	render3D.lights.directional_light([1,-1,1], 150, [255,255,255])
 ])
@@ -87,8 +87,8 @@ while True:
 		if isinstance(i, render3D.lights.directional_light):
 			i.direction = render3D.rotate_y(i.direction, 0.01)
 		if isinstance(i, render3D.shapes.mesh):
-			i.move()
-			i.rotate(0, .1, 0)
+			i.move(.0, .0, .0)
+			i.rotate(.0, .01, .0)
 	#cube = obj_list[0]
 	#cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, -.008, .006, .005) + cube.position
 

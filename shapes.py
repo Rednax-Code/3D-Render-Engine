@@ -26,9 +26,9 @@ from vector_rotation import *
 
 class ShapeLike:
 	def __init__(self, position:npt.ArrayLike, rotation:npt.ArrayLike, size:npt.ArrayLike):
-		self.position = np.array(position)
-		self.rotation = np.array(rotation)
-		self.size = np.array(size)
+		self.position = np.float64(np.array(position))
+		self.rotation = np.float64(np.array(rotation))
+		self.size = np.float64(np.array(size))
 
 	def move(self, dx, dy, dz):
 		"""
@@ -56,7 +56,7 @@ class plane(ShapeLike):
 	triangles = (
 		[0,1,2], [0,2,3]
 	)
-	def __init__(self, position:npt.ArrayLike, , rotation:npt.ArrayLike, size:npt.ArrayLike, texture):
+	def __init__(self, position:npt.ArrayLike, rotation:npt.ArrayLike, size:npt.ArrayLike, texture):
 		"""
 		A plane! no... not the one that flies.
 
@@ -76,7 +76,7 @@ class plane(ShapeLike):
 		ShapeLike
 		"""
 
-		super(ShapeLike, self).__init__(position, rotation, size)
+		super().__init__(position, rotation, size)
 
 		self.size = np.array([self.size[0], 0, self.size[1]])
 
@@ -84,9 +84,7 @@ class plane(ShapeLike):
 			[-1,0,-1],[-1,0,1], [1,0,1], [1,0,-1]
 		])
 
-		self.position = position
-		self.size = size
-		self.offsets_center = position+(unit_offsets * size/2)
+		self.offsets_center = self.position+(unit_offsets * self.size/2)
 
 
 class cuboid(ShapeLike):
@@ -118,16 +116,14 @@ class cuboid(ShapeLike):
 		ShapeLike
 		"""
 
-		super(ShapeLike, self).__init__(position, rotation, size)
+		super().__init__(position, rotation, size)
 
 		unit_offsets = np.array([
 			[-1,-1,-1],[-1,-1,1], [-1,1,1], [-1,1,-1],
 			[1,-1,-1], [1,-1,1], [1,1,1], [1,1,-1]
 		])
 
-		self.position = position
-		self.size = size
-		self.offsets_center = position+(unit_offsets * size/2)
+		self.offsets_center = self.position+(unit_offsets * self.size/2)
 
 
 class mesh(ShapeLike):
@@ -154,7 +150,7 @@ class mesh(ShapeLike):
 		ShapeLike
 		"""
 
-		super(ShapeLike, self).__init__(position, rotation, size)
+		super().__init__(position, rotation, size)
 
 		# Reading the obj file
 		model = open(obj)
@@ -171,6 +167,4 @@ class mesh(ShapeLike):
 		center = np.average(offsets, 0)
 		offsets -= center
 
-		self.position = position
-		self.size = size
-		self.offsets_center = position+(offsets * size/2)
+		self.offsets_center = self.position+(offsets * self.size/2)
