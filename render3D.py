@@ -178,7 +178,7 @@ def render(screen:Surface, debug=False) -> float:
 		The time it took to render the image.
 	"""
 
-	st = time.time()
+	timer_start = time.time()
 	
 	# Gather camera information
 	cam_position = camera.position
@@ -211,7 +211,6 @@ def render(screen:Surface, debug=False) -> float:
 			point_lighting = i.intensity*np.array(i.color)/255
 			point_lights.append([point_light_position, point_lighting])
 
-
 	# Gather render information
 	# might want to give each object a render priority
 	render_objects = [i for i in objects_list if isinstance(i, shapes.ShapeLike)]
@@ -229,12 +228,13 @@ def render(screen:Surface, debug=False) -> float:
 		offsets.extend(i.offsets_center)
 		render_orders.extend([order for j in range(len(i.triangles))])
 	
+	timer_render_setup = time.time()
+	
 	# World space >>> Camera translation space
 	offsets -= np.array(cam_position)
 
 	# Camera translation space >>> Camera rotation space
 	# This works and i'm glad it does, but it's ugly af. Either don't touch it or spend 5 hours fixing it completely
-	# render-time : 20% outdated
 	offsets -= cam_point
 	new_offsets = []
 	for j in offsets:
@@ -245,9 +245,10 @@ def render(screen:Surface, debug=False) -> float:
 	offsets = np.array(new_offsets)
 	offsets += cam_point
 
+	timer_rotation_space = time.time()
+
 	# Camera rotation space >>> View space
 	# Getting normal vectors, colors and visible triangles
-	# render-time : 30% outdated
 	visible_triangles = []
 	normals = []
 	colors = []
@@ -264,6 +265,8 @@ def render(screen:Surface, debug=False) -> float:
 		counter += 1
 	render_orders = render_orders_new
 	triangle_count = len(visible_triangles)
+
+	timer_view_space = time.time()
 	
 	# Apply clipping
 	remove_queue = []
@@ -320,6 +323,8 @@ def render(screen:Surface, debug=False) -> float:
 	render_orders.extend(add_render_order_queue) # Render order
 	triangle_count = len(clipped_triangles)
 
+	timer_clipped = time.time()
+
 	# Sorting triangles - Render order (all of below)
 	render_first_triangles, render_first_normals, render_first_colors = [], [], []
 	to_sort_triangles, to_sort_normals, to_sort_colors = [], [], []
@@ -342,6 +347,8 @@ def render(screen:Surface, debug=False) -> float:
 	normals = render_first_normals + [to_sort_normals[j] for j in sort_order]
 	colors = render_first_colors + [to_sort_colors[j] for j in sort_order]
 
+	timer_sorted = time.time()
+
 	# View space >>> Projection space
 	sorted_triangles = np.array(sorted_triangles)
 	offsets = sorted_triangles.reshape([len(sorted_triangles)*3, 3])
@@ -352,9 +359,10 @@ def render(screen:Surface, debug=False) -> float:
 	projection2D = np.array([0, window_size[1]]) + np.array([1, -1]) * projection2D[:, 0:2]
 	projection2D = np.rint(projection2D + np.array([1, -1]) * np.array(window_size)/2)
 	projection2D = projection2D.astype(int).tolist()
+
+	timer_projected = time.time()
 		
 	# Drawing the triangles on screen
-	# render-time : 10%-20% outdated
 	for j in range(len(sorted_triangles)):
 
 		# Get triangle information
@@ -387,12 +395,34 @@ def render(screen:Surface, debug=False) -> float:
 			pygame.gfxdraw.aapolygon(screen, points, (255,255,255)) # Could exchange this with "aatrigon()"
 	
 
-	et = time.time()
-	render_time = (et-st)*1000
+	timer_end = time.time()
+	render_time = (timer_end-timer_start)*1000
+	setup_time = (timer_render_setup-timer_start)*1000
+	world_to_rotation_time = (timer_rotation_space-timer_render_setup)*1000
+	rotation_to_view_time = (timer_view_space-timer_rotation_space)*1000
+	view_to_clipped_time = (timer_clipped-timer_view_space)*1000
+	clipped_to_sorted_time = (timer_sorted-timer_clipped)*1000
+	sorted_to_projected_time = (timer_projected-timer_sorted)*1000
+	projected_to_drawn_time = (timer_end-timer_projected)*1000
 
 	# Draw debug screen
 	if debug:
-		render_time_text = debug_font.render(str(round(render_time,1))+' ms', True, (255,255,255))
-		screen.blit(render_time_text, [50, 50])
+		render_text = debug_font.render('Total frame: '+str(round(render_time,1))+' ms', True, (255,255,255))
+		setup_text = debug_font.render('Render Setup: '+str(round(setup_time,1))+' ms', True, (255,255,255))
+		world_to_rotation_text = debug_font.render('World to Rotation Space: '+str(round(world_to_rotation_time,1))+' ms', True, (255,255,255))
+		rotation_to_view_text = debug_font.render('Rotation to View Space: '+str(round(rotation_to_view_time,1))+' ms', True, (255,255,255))
+		view_to_clipped_text = debug_font.render('View Space to Clipped: '+str(round(view_to_clipped_time,1))+' ms', True, (255,255,255))
+		clipped_to_sorted_text = debug_font.render('Clipped to Sorted: '+str(round(clipped_to_sorted_time,1))+' ms', True, (255,255,255))
+		sorted_to_projected_text = debug_font.render('Sorted to Projected: '+str(round(sorted_to_projected_time,1))+' ms', True, (255,255,255))
+		projected_to_drawn_text = debug_font.render('Projected to Drawn: '+str(round(projected_to_drawn_time,1))+' ms', True, (255,255,255))
+
+		screen.blit(render_text, [50, 50])
+		screen.blit(setup_text, [50, 120])
+		screen.blit(world_to_rotation_text, [50, 190])
+		screen.blit(rotation_to_view_text, [50,260])
+		screen.blit(view_to_clipped_text, [50,330])
+		screen.blit(clipped_to_sorted_text, [50,400])
+		screen.blit(sorted_to_projected_text, [50,470])
+		screen.blit(projected_to_drawn_text, [50,540])
 
 	return render_time
