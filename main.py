@@ -83,9 +83,9 @@ while True:
 	obj_list = render3D.objects_list
 
 	# Rotating the light
-	for i in obj_list:
-		if isinstance(i, render3D.lights.directional_light):
-			i.direction = render3D.rotate_y(i.direction, 0.01)
+	#for i in obj_list:
+	#	if isinstance(i, render3D.lights.directional_light):
+	#		i.direction = render3D.rotate_y(i.direction, 0.01)
 	#cube = obj_list[0]
 	#cube.offsets_center = render3D.rotate_points(cube.offsets_center - cube.position, -.008, .006, .005) + cube.position
 
@@ -93,7 +93,7 @@ while True:
 	screen.fill((0,0,0))
 
 	# Render all objects
-	time = render3D.render(screen, debug=True)
+	time = render3D.render(screen, debug=False)
 
 	pygame.mouse.get_rel()
 	pygame.display.flip()
