@@ -15,5 +15,9 @@ def rotate_z(points:npt.ArrayLike, a:float):
 	r = R.from_euler('z', a)
 	return r.as_matrix().dot(points.T).T
 
+def rotate_around_vector(points:npt.ArrayLike, vector:npt.ArrayLike, theta:float):
+	r = R.from_rotvec(theta * vector/(vector[0]**2+vector[1]**2+vector[2]**2)**.5)
+	return r.as_matrix().dot(points.T).T
+
 def rotate_points(points:npt.ArrayLike, a:float, b:float, y:float):
 	return rotate_x(rotate_y(rotate_z(points, y), b), a)

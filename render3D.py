@@ -156,7 +156,7 @@ class scene:
 def calc_normal(triangle):
 	line1, line2 = triangle[0:2] - triangle[2]
 	normal = np.cross(line1, line2)
-	normal /= np.linalg.norm(normal)
+	normal /= (normal[0]**2+normal[1]**2+normal[2]**2)**.5
 	return normal
 
 
@@ -227,22 +227,17 @@ def render(screen:Surface, debug=False) -> float:
 		triangles.extend(np.array(i.triangles)+len(offsets))
 		offsets.extend(i.offsets_center)
 		render_orders.extend([order for j in range(len(i.triangles))])
-	
+
 	timer_render_setup = time.time()
 	
 	# World space >>> Camera translation space
 	offsets -= np.array(cam_position)
 
 	# Camera translation space >>> Camera rotation space
-	# This works and i'm glad it does, but it's ugly af. Either don't touch it or spend 5 hours fixing it completely
+	# I don't know why or how this works, sooo i'm just not gonna touch it.
 	offsets -= cam_point
-	new_offsets = []
-	for j in offsets:
-		vector = Vector3(j.tolist())
-		vector.rotate_rad_ip(-cam_rotation[0], np.cross([0,1,0], rotate_y(np.array([0,0,1]), cam_rotation[1])))
-		vector.rotate_rad_ip(-cam_rotation[1], Vector3(0,1,0))
-		new_offsets.append(list(vector))
-	offsets = np.array(new_offsets)
+	offsets = rotate_around_vector(offsets, np.cross([0,1,0], rotate_y(np.array([0,0,1]), cam_rotation[1])), -cam_rotation[0])
+	offsets = rotate_around_vector(offsets, Vector3(0,1,0), -cam_rotation[1]) 
 	offsets += cam_point
 
 	timer_rotation_space = time.time()
@@ -254,18 +249,36 @@ def render(screen:Surface, debug=False) -> float:
 	colors = []
 	render_orders_new = [] # Render order
 	counter = 0
-	for j in triangles:
-		points = [offsets[j[k]] for k in (0,1,2)]
+
+	triangle_points = np.array(offsets[triangles])
+
+	for j in range(len(triangles)):
+		points = np.array(triangle_points[j])
 		normal = calc_normal(points)
-		if np.dot(normal, offsets[j[2]]-cam_point) < 0:
+		if np.dot(normal, points[2]-cam_point) < 0:
 			visible_triangles.append(points)
 			normals.append(normal)
 			colors.append((255,255,255))
 			render_orders_new.append(render_orders[counter])
 		counter += 1
-	render_orders = render_orders_new
-	triangle_count = len(visible_triangles)
 
+	"""
+	triangle_points = []
+	triangle_normals = []
+	for j in range(len(triangles)):
+		triangle_points.append(np.array(offsets[triangles[j][0:3]]))
+		triangle_normals.append(calc_normal(triangle_points[j]))
+	for j in range(len(triangle_points)):
+		if np.dot(triangle_normals[j], triangle_points[j][2]-cam_point) < 0:
+			visible_triangles.append(triangle_points[j])
+			normals.append(triangle_normals[j])
+			colors.append((255,255,255))
+			render_orders_new.append(render_orders[counter])
+		counter += 1
+	"""
+	render_orders = list(render_orders_new)
+	triangle_count = len(visible_triangles)
+	
 	timer_view_space = time.time()
 	
 	# Apply clipping
