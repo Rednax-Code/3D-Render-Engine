@@ -33,6 +33,7 @@ import numpy as np
 import numpy.typing as npt
 import shapes
 import lights
+from vector_rotation import *
 import time # timer
 
 
@@ -112,17 +113,6 @@ camera: camera_object
 
 
 
-def rotate_x(points:npt.ArrayLike, y:float):
-	return np.array([1,0,0,0,np.cos(y),-np.sin(y),0,np.sin(y),np.cos(y)]).reshape(3,3).dot(points.T).T
-
-def rotate_y(points:npt.ArrayLike, b:float):
-	return np.array([np.cos(b),0,np.sin(b),0,1,0,-np.sin(b),0,np.cos(b)]).reshape(3,3).dot(points.T).T
-
-def rotate_z(points:npt.ArrayLike, a:float):
-	return np.array([np.cos(a),-np.sin(a),0,np.sin(a),np.cos(a),0,0,0,1]).reshape(3,3).dot(points.T).T
-
-def rotate_points(points:npt.ArrayLike, a:float, b:float, y:float):
-	return rotate_x(rotate_y(rotate_z(points, a), b), y)
 
 def init(screen_size):
 	"""

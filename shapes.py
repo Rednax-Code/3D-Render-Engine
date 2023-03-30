@@ -21,17 +21,42 @@ Plans
 import numpy as np
 import numpy.typing as npt
 import os
+from vector_rotation import *
 
 
 class ShapeLike:
-	pass
+	def __init__(self, position:npt.ArrayLike, rotation:npt.ArrayLike, size:npt.ArrayLike):
+		self.position = np.float64(np.array(position))
+		self.rotation = np.float64(np.array(rotation))
+		self.size = np.float64(np.array(size))
+
+	def move(self, dx, dy, dz):
+		"""
+		I like to move it, move it!
+		---------------------------
+		"""
+
+		d_vector = np.array([dx, dy, dz])
+		self.position += d_vector
+		self.offsets_center += d_vector
+
+	def rotate(self, a, b, y):
+		"""
+		You spin me right round, baby right round
+		-----------------------------------------
+		"""
+
+		offsets = self.offsets_center - self.position
+		offsets = rotate_points(offsets, a, b, y)
+		self.offsets_center = offsets + self.position
+		self.rotation += np.array([a, b, y])
 
 
 class plane(ShapeLike):
 	triangles = (
 		[0,1,2], [0,2,3]
 	)
-	def __init__(self, position:npt.ArrayLike, size:npt.ArrayLike, texture):
+	def __init__(self, position:npt.ArrayLike, rotation:npt.ArrayLike, size:npt.ArrayLike, texture):
 		"""
 		A plane! no... not the one that flies.
 
@@ -51,16 +76,15 @@ class plane(ShapeLike):
 		ShapeLike
 		"""
 
-		position = np.array(position)
-		size = np.array([size[0], 0, size[1]])
+		super().__init__(position, rotation, size)
+
+		self.size = np.array([self.size[0], 0, self.size[1]])
 
 		unit_offsets = np.array([
 			[-1,0,-1],[-1,0,1], [1,0,1], [1,0,-1]
 		])
 
-		self.position = position
-		self.size = size
-		self.offsets_center = position+(unit_offsets * size/2)
+		self.offsets_center = self.position+(unit_offsets * self.size/2)
 
 
 class cuboid(ShapeLike):
@@ -72,7 +96,7 @@ class cuboid(ShapeLike):
 		[3,2,6], [3,6,7],
 		[5,1,0], [5,0,4]
 	)
-	def __init__(self, position:npt.ArrayLike, size:npt.ArrayLike, texture):
+	def __init__(self, position:npt.ArrayLike, rotation:npt.ArrayLike, size:npt.ArrayLike, texture):
 		"""
 		Cube, box, 3D rectangle, whatever you wanna call it.
 
@@ -92,21 +116,18 @@ class cuboid(ShapeLike):
 		ShapeLike
 		"""
 
-		position = np.array(position)
-		size = np.array(size)
+		super().__init__(position, rotation, size)
 
 		unit_offsets = np.array([
 			[-1,-1,-1],[-1,-1,1], [-1,1,1], [-1,1,-1],
 			[1,-1,-1], [1,-1,1], [1,1,1], [1,1,-1]
 		])
 
-		self.position = position
-		self.size = size
-		self.offsets_center = position+(unit_offsets * size/2)
+		self.offsets_center = self.position+(unit_offsets * self.size/2)
 
 
 class mesh(ShapeLike):
-	def __init__(self, obj:os.PathLike, position:npt.ArrayLike, size:npt.ArrayLike, texture):
+	def __init__(self, obj:os.PathLike, position:npt.ArrayLike, rotation:npt.ArrayLike, size:npt.ArrayLike, texture):
 		"""
 		A 3D mesh loaded from a .obj file
 
@@ -129,6 +150,8 @@ class mesh(ShapeLike):
 		ShapeLike
 		"""
 
+		super().__init__(position, rotation, size)
+
 		# Reading the obj file
 		model = open(obj)
 		offsets = []
@@ -144,9 +167,4 @@ class mesh(ShapeLike):
 		center = np.average(offsets, 0)
 		offsets -= center
 
-		position = np.array(position)
-		size = np.array(size)
-
-		self.position = position
-		self.size = size
-		self.offsets_center = position+(offsets * size/2)
+		self.offsets_center = self.position+(offsets * self.size/2)
