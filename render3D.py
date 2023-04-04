@@ -249,33 +249,16 @@ def render(screen:Surface, debug=False) -> float:
 	colors = []
 	render_orders_new = [] # Render order
 	counter = 0
-
 	triangle_points = np.array(offsets[triangles])
-
 	for j in range(len(triangles)):
 		points = np.array(triangle_points[j])
-		normal = calc_normal(points)
+		normal = np.cross(points[0]-points[2], points[1]-points[2])
 		if np.dot(normal, points[2]-cam_point) < 0:
 			visible_triangles.append(points)
 			normals.append(normal)
 			colors.append((255,255,255))
 			render_orders_new.append(render_orders[counter])
 		counter += 1
-
-	"""
-	triangle_points = []
-	triangle_normals = []
-	for j in range(len(triangles)):
-		triangle_points.append(np.array(offsets[triangles[j][0:3]]))
-		triangle_normals.append(calc_normal(triangle_points[j]))
-	for j in range(len(triangle_points)):
-		if np.dot(triangle_normals[j], triangle_points[j][2]-cam_point) < 0:
-			visible_triangles.append(triangle_points[j])
-			normals.append(triangle_normals[j])
-			colors.append((255,255,255))
-			render_orders_new.append(render_orders[counter])
-		counter += 1
-	"""
 	render_orders = list(render_orders_new)
 	triangle_count = len(visible_triangles)
 	
@@ -379,7 +362,7 @@ def render(screen:Surface, debug=False) -> float:
 	for j in range(len(sorted_triangles)):
 
 		# Get triangle information
-		points = [projection2D[j*3+k] for k in (0,1,2)]
+		points = projection2D[j*3:j*3+3]
 		normal = normals[j]
 		color = colors[j]
 
