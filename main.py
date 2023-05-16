@@ -23,11 +23,11 @@ render3D.init([width, height])
 # Loading in triangle meshes
 shape = os.path.join(os.path.dirname(__file__),'objects\\house.obj')
 
-monkey = os.path.join(os.path.dirname(__file__),'objects\\death_star.obj')
+monkey = os.path.join(os.path.dirname(__file__),'objects\\monkey.obj')
 
 # Adding first shapes
 render3D.scene.add_objects([
-	render3D.shapes.mesh(monkey, [0,0,1000], [0,0,0], [20,20,20], None),
+	render3D.shapes.mesh(monkey, [0,0,1000], [0,0,0], [500,500,500], None),
 	#render3D.shapes.cuboid([0,0,500], [500,500,500], None),
 	render3D.shapes.plane([0,-525,0], [0,0,0], [5000,5000], None),
 	#render3D.shapes.mesh(shape, [-700,0,1000], [0,0,0], [500,500,500], None),
