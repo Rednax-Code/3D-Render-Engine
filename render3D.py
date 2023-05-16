@@ -34,7 +34,10 @@ import numpy.typing as npt
 import shapes
 import lights
 from vector_rotation import *
+from numba import jit, cuda # For GPU processing
 import time # timer
+import timeit
+#print(1000*timeit.timeit(lambda: ..., number=len(...)), 'ms')
 
 
 class camera_object:
@@ -71,7 +74,7 @@ class camera_object:
 		self.default_plane_vectors = np.array([[1.0,.0,.0], [.0,1.0,.0]])
 		self.plane_vectors = np.array([*self.default_plane_vectors])
 		self.plane_normal = np.cross(*self.plane_vectors)
-		self.plane_normal /= np.linalg.norm(self.plane_normal)
+		self.plane_normal = normalize(self.plane_normal)
 		self.point = -self.plane_normal * (1000 / np.tan(self.fov/2))
 	
 	def translate(self, translation:npt.ArrayLike) -> None:
@@ -152,12 +155,29 @@ class scene:
 	def add_objects(Objects:list[shapes.ShapeLike]):
 		objects_list.extend(Objects)
 
+@jit(target_backend='cuda')
+def dot_product(a, b):
+	return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]
 
+@jit(target_backend='cuda')
+def cross_product(a, b):
+	return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
+
+@jit(target_backend='cuda')
+def normalize(vector):
+	return vector/(vector[0]**2+vector[1]**2+vector[2]**2)**.5
+
+@jit(target_backend='cuda')
 def calc_normal(triangle):
 	line1, line2 = triangle[0:2] - triangle[2]
-	normal = np.cross(line1, line2)
-	normal /= (normal[0]**2+normal[1]**2+normal[2]**2)**.5
+	normal = np.array(cross_product(line1, line2))
+	#normal = normalize(normal) in case of some kind of crash try uncommenting this line
 	return normal
+
+@jit(target_backend='cuda')
+def calc_triangle_center(ts):
+	"""ts = triangles"""	
+	return [(ts[0][0]+ts[1][0]+ts[2][0])/3, (ts[0][1]+ts[1][1]+ts[2][1])/3, (ts[0][2]+ts[1][2]+ts[2][2])/3]
 
 
 def render(screen:Surface, debug=False) -> float:
@@ -252,10 +272,10 @@ def render(screen:Surface, debug=False) -> float:
 
 	triangle_points = np.array(offsets[triangles])
 
-	for j in range(len(triangles)):
+	for j in range(len(triangles)): # tag
 		points = np.array(triangle_points[j])
 		normal = calc_normal(points)
-		if np.dot(normal, points[2]-cam_point) < 0:
+		if dot_product(normal, points[2]-cam_point) < 0:
 			visible_triangles.append(points)
 			normals.append(normal)
 			colors.append((255,255,255))
@@ -335,7 +355,7 @@ def render(screen:Surface, debug=False) -> float:
 	colors.extend(add_color_queue)
 	render_orders.extend(add_render_order_queue) # Render order
 	triangle_count = len(clipped_triangles)
-
+	
 	timer_clipped = time.time()
 
 	# Sorting triangles - Render order (all of below)
@@ -387,16 +407,16 @@ def render(screen:Surface, debug=False) -> float:
 		ambient_color = ambient_lighting
 
 		# Add directional lighting
-		directional_color = directional_lighting * np.dot(normal/np.linalg.norm(normal), -light_direction/np.linalg.norm(light_direction)).clip(0, 1)
+		directional_color = directional_lighting * min(1, max(0, dot_product(normalize(normal), -normalize(light_direction))))
 
 		# Add point lighting
 		point_color = (0,0,0)
-		center = np.average(sorted_triangles[j], 0)
+		center = calc_triangle_center(sorted_triangles[j])
 		for k in point_lights:
 			point_light_position = k[0]
 			point_lighting = k[1]
 			light_direction = center - point_light_position
-			point_color += point_lighting * np.dot(normal/np.linalg.norm(normal), -light_direction/np.linalg.norm(light_direction)).clip(0, 1)
+			point_color += point_lighting * min(1, max(0, dot_product(normalize(normal), -normalize(light_direction))))
 
 		# Calculate total color
 		total_color = (ambient_color+directional_color+point_color)/255
