@@ -268,17 +268,15 @@ def render(screen:Surface, debug=False) -> float:
 	normals = []
 	colors = []
 	render_orders_new = [] # Render order
-	counter = 0
 	triangle_points = np.array(offsets[triangles])
 	for j in range(len(triangles)):
-		points = np.array(triangle_points[j])
+		points = triangle_points[j]
 		normal = calc_normal(points)
 		if dot_product(normal, points[2]-cam_point) < 0:
 			visible_triangles.append(points)
 			normals.append(normal)
 			colors.append((255,255,255))
-			render_orders_new.append(render_orders[counter])
-		counter += 1
+			render_orders_new.append(render_orders[j])
 	render_orders = list(render_orders_new)
 	triangle_count = len(visible_triangles)
 	
@@ -353,12 +351,8 @@ def render(screen:Surface, debug=False) -> float:
 			to_sort_triangles.append(clipped_triangles[j])
 			to_sort_normals.append(normals[j])
 			to_sort_colors.append(colors[j])
-	averages = [np.average(j, 0)[2] for j in to_sort_triangles]
-	sorted_averages = sorted(averages, reverse=True)
-	sort_order = []
-	for j in sorted_averages:
-		sort_order.append(averages.index(j))
-		averages[averages.index(j)] = 0
+	averages = [calc_triangle_center(j)[2] for j in to_sort_triangles]
+	sort_order = [x for _, x in sorted(zip(averages, range(len(averages))),reverse=True)]
 	sorted_triangles = render_first_triangles + [to_sort_triangles[j] for j in sort_order]
 	normals = render_first_normals + [to_sort_normals[j] for j in sort_order]
 	colors = render_first_colors + [to_sort_colors[j] for j in sort_order]
