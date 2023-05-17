@@ -21,7 +21,7 @@ Plans
 import numpy as np
 import numpy.typing as npt
 import os
-from vector_rotation import *
+from render3D.vector_rotation import *
 
 
 class ShapeLike:

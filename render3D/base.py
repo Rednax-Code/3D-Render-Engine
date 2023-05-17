@@ -1,152 +1,36 @@
-"""
-Render3D
---------
-
-A 3D renderer originally created for pygame.
-
-I started on this project around the start of march 2023.
-What i plan to do with it all... idk, BUT it's great fun.
-It is currently VERY slow (cus it's python), but i'll probably add some Cython magic.
-
-Features
---------
-- Load in .obj files.
-- Render triangle meshes and some basic shapes like cubes and planes.
-- Doesn't render triangles facing away from the camera.
-- Clip triangles with points in/behind camera.
-- Painter-style depth mapping.
-- Camera object which can move and rotate.
-- Lighting with ambient, directional and point lights.
-
-Plans
------
-- Optimilization through Cython
-- Texturing
-- perhaps smooth lighting shaders?
-- shadows?!
-"""
-
 from pygame.math import *
 from pygame import Surface
 import pygame.gfxdraw
+
+import render3D.shapes as shapes
+import render3D.lights as lights
+from render3D.camera_object import *
+from render3D.vector_rotation import *
+from render3D.gpu_calculations import *
+
 import numpy as np
-import numpy.typing as npt
-import shapes
-import lights
-from vector_rotation import *
-from numba import jit, cuda # For GPU processing
 import time # timer
 import timeit
 #print(1000*timeit.timeit(lambda: ..., number=len(...)), 'ms')
 
-
-class camera_object:
-	def __init__(self, position:npt.ArrayLike=[0,0,0], rotation:npt.ArrayLike=[.0,.0,.0], fov:float=90):
-		"""
-		The camera of your scene, which is created automatically by the engine.
-	
-		It can be accessed with: `render3D.camera`
-
-		Parameters
-		----------
-		position : `Array[x: float, y: float, z: float]`
-			The starting position of the camera.
-			
-		rotation : `Array[x: float, y: float, z: float]`
-			The starting rotation of the camera around the axis x, y and z.
-		
-		fov : `float`
-			The fov for the camera.
-
-		Returns
-		-------
-		camera_object
-
-		Issues
-		------
-		Rotating the camera round the z-axis might cause issues (untested)
-		"""
-
-		self.position = position # Is the offset of all objects relatively
-		self.rotation = np.array(rotation)
-		self.fov = fov
-
-		self.default_plane_vectors = np.array([[1.0,.0,.0], [.0,1.0,.0]])
-		self.plane_vectors = np.array([*self.default_plane_vectors])
-		self.plane_normal = np.cross(*self.plane_vectors)
-		self.plane_normal = normalize(self.plane_normal)
-		self.point = -self.plane_normal * (1000 / np.tan(self.fov/2))
-	
-	def translate(self, translation:npt.ArrayLike) -> None:
-		"""
-		Moves the camera relative to is rotation around the y-axis
-
-		Parameters
-		----------
-		translation : `Array[x: float, y: float, z: float]`
-			The target position minus current position.
-
-		Returns
-		-------
-		None
-		"""
-		self.position = self.position + rotate_y(np.array(translation), self.rotation[1])
-
-	def rotate(self, rotation:npt.ArrayLike) -> None:
-		"""
-		Rotates the camera relatively to itself.
-
-		So the x-axis changes depending on its current rotation around the y-axis.
-
-		Parameters
-		----------
-		rotation : `Array[x: float, y: float, z: float]`
-			The target rotation minus current rotation.
-
-		Returns
-		-------
-		None
-		"""
-		self.rotation += rotation
-
-
-
-
 camera: camera_object
+objects_list: list
 
-
-
-
-def init(screen_size):
-	"""
-	Initializes the module and creates the camera object as `render3D.camera`
-
-	Parameters
-	----------
-	screen_size : `Array[x: int, y: int]`
-		Sets the size of the screen.
-
-	Returns
-	-------
-	None
-	"""
-
+def init_base(screen_size, camera_pass, object_list_pass, selected_triangle_pass):
 	global window_size
 	window_size = screen_size
 
 	global camera
-	camera = camera_object()
-
-	# Temp
-	global selected_triangle
-	selected_triangle = 0
+	camera = camera_pass
 
 	global objects_list
-	objects_list = []
+	objects_list = object_list_pass
+
+	global selected_triangle # Temp
+	selected_triangle = selected_triangle_pass
 
 	global debug_font
 	debug_font = pygame.font.SysFont('Arial', size=72)
-
 
 class scene:
 	def add_object(Object:shapes.ShapeLike):
@@ -154,30 +38,6 @@ class scene:
 	
 	def add_objects(Objects:list[shapes.ShapeLike]):
 		objects_list.extend(Objects)
-
-@jit(target_backend='cuda')
-def dot_product(a, b):
-	return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]
-
-@jit(target_backend='cuda')
-def cross_product(a, b):
-	return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
-
-@jit(target_backend='cuda')
-def normalize(vector):
-	return vector/(vector[0]**2+vector[1]**2+vector[2]**2)**.5
-
-@jit(target_backend='cuda')
-def calc_normal(triangle):
-	line1, line2 = triangle[0:2] - triangle[2]
-	normal = np.array(cross_product(line1, line2))
-	#normal = normalize(normal) in case of some kind of crash try uncommenting this line
-	return normal
-
-@jit(target_backend='cuda')
-def calc_triangle_center(ts):
-	"""ts = triangles"""	
-	return [(ts[0][0]+ts[1][0]+ts[2][0])/3, (ts[0][1]+ts[1][1]+ts[2][1])/3, (ts[0][2]+ts[1][2]+ts[2][2])/3]
 
 
 def render(screen:Surface, debug=False) -> float:
